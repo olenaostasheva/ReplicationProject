@@ -1,4 +1,6 @@
-#1. Gather the data
+#Replicate returns for the JT strategy
+
+#1. Gather and clean the data
 gather_data <- function(symbols, years){
 
         require(ws.data)
@@ -63,8 +65,6 @@ gather_daily_JT <- function(){
         ## Now get rid of the rows that we don't consider investible.
 
         x <- filter(x, ! is.na(ret.0.6.m) & ! is.na(ret.6.0.m))
-
-        ##
 
         daily <- x %>% group_by(date) %>%
                 mutate(ret.class = as.character(ntile(ret.6.0.m, n = 3))) %>%
@@ -143,24 +143,3 @@ win_minus_los_final %>% ggplot(aes(x=month,fin_mean_ret)) + scale_y_continuous(l
 #top.1500 filtered: 0.8% return on the spread
 mean(win_minus_los_final$fin_mean_ret)
 
-#Make a table with winners and losers
-JT.0.6.m.ret<-function(use_monthly_data) {
-
-        r<-use_monthly_data %>%
-                spread(key=ret.class,value=ret.0.6.m) %>%
-                mutate(diff=Winners_JT-Losers_JT) %>%
-                select(symbol, date, Winners_JT, Losers_JT, diff)
-
-        return(r)
-}
-
-JT_portfolio<-JT.0.6.m.ret(monthly_returns)
-
-top_1500_data<-function(data){
-
-        filtered<- data %>% filter(data, top.1500==TRUE)
-        return(filtered)
-
-        }
-
-monthly_returns<-top_1500_data(monthly_returns)
