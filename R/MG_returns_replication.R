@@ -1,6 +1,6 @@
 #MG returns replication
 
-#1. Gather the data
+#1. Gather and clean the data
 gather_data <- function(symbols, years){
 
         require(ws.data)
@@ -32,13 +32,9 @@ gather_data <- function(symbols, years){
         gathered<-tbl_df(gathered)
 
         #clean data: get rid of stocks with high returns
-        #decide how to deal with 1) high prices (Berkshire) and 2) high returns
-        #gathered<-filter(gathered, ! symbol %in% c ())
-        #get rid of CHTM - was around for 4 months
         #gets rid of 982 lines of code where tret is less than 15
-        #filter out only top 1500 companies
         gathered<-filter(gathered,tret<15)
-        #gathered<-filter(gathered, top.1500==TRUE)
+        gathered<-filter(gathered, top.1500==TRUE)
 
         #find past and forward 6 months returns to be used later in calculations of
         # MG and JT strategies
@@ -50,28 +46,25 @@ gather_data <- function(symbols, years){
 
         # add a test case
 
-
-
         invisible(gathered)
 }
+
+x <- gather_data(symbols=secref$symbol,1998:2007)
 
 #2. Gather daily
 #Rank the stocks by the past industry returns
 #To do this, 1) find the industry returns which is the mean of the past 6 months returns of
 #all the stocks in each industry and 2) rank the industries for each month into Winners and Losers
 
-gather_daily_MG<-function(){
-
-        x <- gather_data(symbols=secref$symbol,1998:2007)
+gather_daily_MG<-function(x){
 
         #Find industry returns by finding the mean of the returns of all the stocks in each industry
         x<-x %>% group_by(m.ind,date) %>%
-                 summarize(ind_ret = mean(ret.6.0.m, na.rm=TRUE)) %>%
-                 select(date, month, m.ind, ind_ret, ret.6.0.m, ret.0.6.m, top.1500)
+                 summarize(ind_ret = mean(ret.6.0.m, na.rm=TRUE))
+                 #select(date, month, m.ind, ind_ret, ret.6.0.m, ret.0.6.m, top.1500)
 
-        #arrange(m.ind, date)
         #Get rid of NAs values
-        #x <- filter(x, ! is.na(ind_ret))
+        x <- filter(x, ! is.na(ind_ret))
 
         ## Create ind.class
         daily <- x %>% group_by(date) %>%
@@ -84,13 +77,10 @@ gather_daily_MG<-function(){
         #get rid of the 2nd class, we only need Winners and Losers to form our portfolio
         #daily<-filter(daily, ind.class=="Winners_MG" & ind.class=="Losers_MG")
 
-        ## ggplot(data = daily, aes(sd.class, log(sd.252.0.d))) + geom_violin() + facet_wrap(~ year)
-
-
         return(daily)
 }
 
-daily_returns<-gather_daily_MG()
+daily_returns<-gather_daily_MG(x)
 View(daily_returns)
 summary(daily_returns)
 
