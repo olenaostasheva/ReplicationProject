@@ -31,14 +31,10 @@ gather_data <- function(symbols, years){
         #make gathered data a tbl_df
         gathered<-tbl_df(gathered)
 
-        #clean data: get rid of stocks with high returns
-        #decide how to deal with 1) high prices (Berkshire) and 2) high returns
-        #gathered<-filter(gathered, ! symbol %in% c ())
-        #get rid of CHTM - was around for 4 months
         #gets rid of 982 lines of code where tret is less than 15
         #filter out only top 1500 companies
         gathered<-filter(gathered,tret<15)
-        #gathered<-filter(gathered, top.1500==TRUE)
+        gathered<-filter(gathered, top.1500==TRUE)
 
         #find past and forward 6 months returns to be used later in calculations of
         # MG and JT strategies
@@ -56,36 +52,29 @@ gather_data <- function(symbols, years){
 }
 
 
+x <- gather_data(symbols=secref$symbol,1998:2007)
+View(x)
+
 #2. Rank the stocks by their 6 months past returns
 #get rid of the stocks where returns are NA
-gather_daily_JT <- function(){
+gather_daily_JT <- function(x){
 
-        x <- gather_data(symbols=secref$symbol,1998:2007)
-
-        ## Now get rid of the rows that we don't consider investible.
-
-        x <- filter(x, ! is.na(ret.0.6.m) & ! is.na(ret.6.0.m))
-
-        daily <- x %>% group_by(date) %>%
+        ## Now get rid of the rows with NA
+        x<- x %>% group_by(date) %>%
                 mutate(ret.class = as.character(ntile(ret.6.0.m, n = 3))) %>%
                 mutate(ret.class = ifelse(ret.class == "1", "Losers_JT", ret.class)) %>%
                 mutate(ret.class = ifelse(ret.class == "3", "Winners_JT", ret.class)) %>%
                 mutate(ret.class = factor(ret.class, levels = c("Losers_JT", "2", "Winners_JT"))) %>%
                 ungroup()
 
-        #Get rid of the 2 class, do not need it.
-        daily<-filter(daily,ret.class=="Winners_JT" & ret.class=="Losers_JT")
+        #Get rid of the 2nd class, do not need it.
+        #x<-filter(x,ret.class=="Winners_JT" & ret.class=="Losers_JT")
 
-        ## There are some outliers, but I am not
-        ## sure they matter especially since we only use sd.class in the analysis.
-
-        ## ggplot(data = daily, aes(sd.class, log(sd.252.0.d))) + geom_violin() + facet_wrap(~ year)
-
-
-        return(daily)
+        return(x)
 }
 
-daily_returns<-gather_daily_JT()
+daily_returns<-gather_daily_JT(x)
+View(daily_returns)
 
 #3. Gather daily returns into monthly, by selecting the last trading day of the month
 gather_monthly <- function(x){
@@ -98,15 +87,15 @@ gather_monthly <- function(x){
 monthly_returns<-gather_monthly(daily_returns)
 View(monthly_returns)
 
-monthly_returns<-filter(monthly_returns,top.1500==TRUE)
-
 #4. Use monthly data to find the difference between winners and losers
 #Find the difference between the mean returns for Winners and Losers for each month
 
 #Find mean returns for each month for winners and for losers
 win_minus_los<-monthly_returns %>%
+        na.omit %>%
         group_by(month, ret.class) %>%
         summarize(mean_return=mean(ret.0.6.m))
+View(win_minus_los)
 
 win_minus_los_final<-win_minus_los %>%
         group_by(month) %>%
@@ -122,8 +111,8 @@ mean(win_minus_los_final$fin_mean_ret)
 winners_mean_ret<-filter(win_minus_los, ret.class=="Winners_JT")
 View(winners_mean_ret)
 #The mean return of the winner portfolio is 10.9% if top.1500 not filtered out
-#The return is 11.4% if top.1500 IS filtered
-mean(winners_mean_ret$mean_return)
+#The return is 1.6% return if top.1500 IS filtered
+mean(winners_mean_ret$mean_return)/6
 
 #Graph a bar plot
 winners_mean_ret %>% ggplot(aes(x=month,mean_return)) + scale_y_continuous(limits = c(-1,1))+geom_bar(stat="identity")
@@ -133,13 +122,14 @@ losers_mean_ret<-filter(win_minus_los, ret.class=="Losers_JT")
 View(losers_mean_ret)
 #The average return on the loser portfolio is 9.7% without top.1500 filter
 #The return with top.1500 filter is 12.3%
-mean(losers_mean_ret$mean_return)
+mean(losers_mean_ret$mean_return)/6
 
 #Graph losers
 losers_mean_ret %>% ggplot(aes(x=month,mean_return)) + scale_y_continuous(limits = c(-1,1))+geom_bar(stat="identity")
+losers_mean_ret %>% ggplot(aes(x=month,mean_return)) + scale_y_continuous(limits = c(-1,1))+geom_smooth()
 
 #Graph the spread between winner portfolio and loser portfolio
 win_minus_los_final %>% ggplot(aes(x=month,fin_mean_ret)) + scale_y_continuous(limits = c(-1,1))+geom_bar(stat="identity")
 #top.1500 filtered: 0.8% return on the spread
-mean(win_minus_los_final$fin_mean_ret)
+mean(win_minus_los_final$fin_mean_ret)/6
 

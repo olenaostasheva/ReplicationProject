@@ -33,13 +33,10 @@ gather_data <- function(symbols, years){
         gathered<-tbl_df(gathered)
 
         #clean data: get rid of stocks with high returns
-        #decide how to deal with 1) high prices (Berkshire) and 2) high returns
-        #gathered<-filter(gathered, ! symbol %in% c ())
-        #get rid of CHTM - was around for 4 months
         #gets rid of 982 lines of code where tret is less than 15
         #filter out only top 1500 companies
-        gathered<-filter(gathered,tret<15)
-        #gathered<-filter(gathered, top.1500==TRUE)
+        #gathered<-filter(gathered,tret<15)
+        gathered<-filter(gathered, top.1500==TRUE)
 
         #find past and forward 6 months returns to be used later in calculations of
         # MG and JT strategies
@@ -50,13 +47,13 @@ gather_data <- function(symbols, years){
 
 
         # add a test case
-
-
-
         invisible(gathered)
 }
 
 x <- gather_data(symbols=secref$symbol,1998:2007)
+View(x)
+unique(x$symbol)
+
 
 #2. Find the 52 week high ratio
 gather_daily_GH <- function(data) {
@@ -70,7 +67,6 @@ gather_daily_GH <- function(data) {
 
         invisible(r)
 }
-
 
 ratio_daily_GH<-gather_daily_GH(x)
 
@@ -88,7 +84,7 @@ GH_rank<- function(data) {
         invisible(r)
         }
 
-daily_ranks_GH<-GH_rank(ratios_daily_GH)
+daily_ranks_GH<-GH_rank(ratio_daily_GH)
 
 #4. Gather daily returns into monthly, by selecting the last trading day of the month
 
@@ -107,6 +103,7 @@ summary(monthly_returns)
 #Calculate forward 6 months returns for each stock for the last trading day of each month
 
 #Summarize the mean returns for each month for each wh.52.class group
+#Make sure to ommit all the NAs
 win_minus_los<-monthly_returns_GH %>%
         na.omit() %>%
         group_by(month,wh.52.class) %>%
@@ -121,14 +118,13 @@ portfolio_returns_GH<-win_minus_los %>%
 View(portfolio_returns_GH)
 
 #Mean of Winners returns over the years
-mean(portfolio_returns_GH$Winners_GH)
+mean(portfolio_returns_GH$Winners_GH)/6
 
 #Mean of Losers returns over the years
-mean(portfolio_returns_GH$Losers_GH)
+mean(portfolio_returns_GH$Losers_GH)/6
 
 #Mean of the difference in returns over the years
-mean(portfolio_returns_GH$diff)
-
+mean(portfolio_returns_GH$diff)/6
 
 
 #Graph the returns in a bar plot
@@ -145,58 +141,6 @@ portfolio_returns_GH %>% ggplot(aes(x=month,Losers_GH)) + scale_y_continuous(lim
 ############################
 ####Apply some filters######
 
-#Table 1: Filter out top 1500 companies
-
-#Write filter top.1500 companies function
-
-filter_top1500<-function(data) {
-
-        data<-filter(data, top.1500==TRUE)
-
-        return(data)
-}
-
-filtered<-filter_top1500(monthly_returns_GH)
-
-#Comapre the dim before the filter and after the filter
-#The number of rows decreased to about 150K from 225K
-dim(monthly_returns_GH)
-dim(filtered)
-
-#Use filtered data to calculate the returns for the portfolio again
-
-win_minus_los<-filtered %>%
-        na.omit() %>%
-        group_by(month,wh.52.class) %>%
-        summarize(mean_return=mean(ret.0.6.m))
-
-View(win_minus_los)
-
-
-portfolio_returns_GH_top1500<-win_minus_los %>%
-        spread(key=wh.52.class,value=mean_return) %>%
-        mutate(diff=Winners_GH-Losers_GH) %>%
-        select(month, Winners_GH, Losers_GH, diff)
-
-View(portfolio_returns_GH_top1500)
-
-#Mean of Winners returns over the years
-#If we filter out only top 1500 companies, the mean return for
-#the Winner portfolio decreases to 19.9%
-mean(portfolio_returns_GH_top1500$Winners_GH)
-
-#Mean of Losers returns over the years
-#If we filter out only top 1500 companies, the mean return for
-#the Loser portfolio increased to -2.3%
-mean(portfolio_returns_GH_top1500$Losers_GH)
-
-#Mean of the difference in returns over the years
-#If we filter out only top 1500 companies, the mean return for
-#the difference in two portfolios increased to 22.2%
-mean(portfolio_returns_GH_top1500$diff)
-
-
-######################
 #Table 2: tweak JANUARY
 #January returns excluded
 #Filter out the month of January from the monthly data
@@ -273,3 +217,9 @@ mean(portfolio_returns_GH_JanOnly$Losers_GH)
 #Diff between the two
 #Decreased to 5.8%
 mean(portfolio_returns_GH_JanOnly$diff)
+
+
+#Chart the 3 portfolio returns
+par(mfrow=c(1, 3))
+
+

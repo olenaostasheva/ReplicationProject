@@ -60,15 +60,15 @@ gather_daily_MG<-function(x){
 
         #Find industry returns by finding the mean of the returns of all the stocks in each industry
         x<-x %>% group_by(m.ind,date) %>%
-                 summarize(ind_ret = mean(ret.6.0.m, na.rm=TRUE))
-                 #select(date, month, m.ind, ind_ret, ret.6.0.m, ret.0.6.m, top.1500)
+                 summarize(ind_ret_past = mean(ret.6.0.m, na.rm=TRUE),
+                           ind_ret_fut =mean(ret.0.6.m, na.rm=TRUE),
+                           month=mode(month))
 
-        #Get rid of NAs values
-        x <- filter(x, ! is.na(ind_ret))
+                 #select(date, month, m.ind, ind_ret, ret.6.0.m, ret.0.6.m, top.1500)
 
         ## Create ind.class
         daily <- x %>% group_by(date) %>%
-                mutate(ind.class = as.character(ntile(ind_ret, n = 3))) %>%
+                mutate(ind.class = as.character(ntile(ind_ret_past, n = 3))) %>%
                 mutate(ind.class = ifelse(ind.class == "1", "Losers_MG", ind.class)) %>%
                 mutate(ind.class = ifelse(ind.class == "3", "Winners_MG", ind.class)) %>%
                 mutate(ind.class = factor(ind.class, levels = c("Losers_MG", "2", "Winners_MG"))) %>%
@@ -80,9 +80,17 @@ gather_daily_MG<-function(x){
         return(daily)
 }
 
+left_join(daily_returns,)
+
+s<-left_join(mutate(daily_returns, year = lubridate::year(date), month = paste(lubridate::month(date, TRUE, TRUE), year, sep = "-")),
+         select(yearly, id, year, top.1500), by = c("year")))
+
+
 daily_returns<-gather_daily_MG(x)
 View(daily_returns)
 summary(daily_returns)
+
+#left_join the two datas
 
 #3. Gather daily returns into monthly, by selecting the last trading day of the month
 gather_monthly<- function(x){
@@ -104,6 +112,7 @@ monthly_returns<-filter(monthly_returns,top.1500==TRUE)
 
 #Find mean future returns for each month for winners and for losers
 win_minus_los<-monthly_returns %>%
+               na.omit() %>%
                group_by(month, m.ind, ind.class) %>%
                summarize(mean_return=mean(ret.0.6.m))
 
