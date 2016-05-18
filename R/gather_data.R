@@ -1,4 +1,3 @@
-
 gather_data <- function(symbols, years){
 
         require(ws.data)
@@ -29,13 +28,9 @@ gather_data <- function(symbols, years){
         #make gathered data a tbl_df
         gathered<-tbl_df(gathered)
 
-        #clean data: get rid of stocks with high returns
-        #decide how to deal with 1) high prices (Berkshire) and 2) high returns
-        #gathered<-filter(gathered, ! symbol %in% c ())
-        #get rid of CHTM - was around for 4 months
-        #gets rid of 982 lines of code where tret is less than 15
+        #gets rid of lines of code where tret is higher than 200% return over the consecutive days
         #filter out only top 1500 companies
-        gathered<-filter(gathered,tret<15)
+        gathered<-filter(gathered,tret<=2)
         gathered<-filter(gathered, top.1500==TRUE)
 
         #find past and forward 6 months returns to be used later in calculations of
@@ -46,7 +41,7 @@ gather_data <- function(symbols, years){
                 ungroup()
 
 
-        # add a test case
+        # add a test case STOP IF NOT
 
 
 

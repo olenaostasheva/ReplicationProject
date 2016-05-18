@@ -51,10 +51,6 @@ Our method
 6. Find the future mean returns of the portfolios for each month (long Winners, short Losers)
 7. Tweak: exclude January data, only use January data, do not filter by top 1500
 
-Example of data we deal with
-========================================================
-Look at the few data files.
-
 
 Our replication vs GH: average monthly returns
 ========================================================
