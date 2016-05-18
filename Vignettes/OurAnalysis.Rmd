@@ -1,7 +1,7 @@
 ---
 title: "The 52-weeek High and Momentum Investing: A Partial Replication of George and Hwang (2004)"
 author: "Wenhao Yu and Olena Ostasheva"
-date: "`May 9th, 2016`"
+date: "`May 24th, 2016`"
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{Vignette Title}
@@ -31,4 +31,89 @@ data(yearly)
         A third method by George and Hwang (2004) is based on relative distance from a stock’s 52 week high price. The ranking of stocks is based on the ratio between a stock’s current prices to its 52 week high price, with portfolio that goes long (short) the highest (lowest) 30% of these ratios.  The rationale for this model is that when stock’s price is near its 52-week high, traders are more reluctant to bid higher despite positive news. The price levels will eventually adjust, but the period of reluctance creates an opportunity for predictability in stock pricing.   Additionally, many economic studies on this phenomenon, such as the “adjustment and anchoring bias” surveyed in Kahneman, Slovic, and Tversky (1982) suggest that traders use 52-week high prices as an “anchor” to which prices will move proportionally.  A comparison conducted in this study shows that although returns are similar in numbers, a large part of individual stock momentum is attributable to stocks with prices either very near or far from the 52-week high.  This explanation indicates a significant influence in the 52-week ratios to the pricing and profitability of individual stocks.
 
 
-#Replication 
+#Data and Method 
+Our data consists of the daily statistics for 3060 securities that traded on the NYSE between 1999-01-02 and 2007-12-31. For the initial data set we filter out the top 1,500 largest cap US stocks. We also remove all the rows for which stocks had returns less than or equal to 200% over the consecutive days. This is done in order to escape any unintentional errors. In total we remove 346 rows that is a very small percentage of the 5 mln rows we have in the initial data set.         
+
+Once we have filtered the data, we find the mean past 6 months returns, mean future 6 months returns and 52 week high for each stock for each day. Additionally, for the MG strategy we find the mean past and future 6 months returns for each industry. Therefore our first portfolio is not formed until !!!! when the data becomes available. We omit all the rows with NAs for the days when data is not available. 
+
+Let's first take a look at our core data. As the table shows it contains information on the industry that the stock belongs to, price and daily returns as well as on the past and future 6 months returns.   
+```{r setup, include=FALSE}
+x <- gather_data(symbols=secref$symbol,1998:2007)
+head(x)
+summary(x)
+```
+
+#Replication
+We first replicate results for the JT and MG startegies and then compare the results of those strategies to the GH strategy. 
+In the JT srategy, we use the past 6 months returns of individual stocks to build a portfolio of Winners and Losers. Winners are the top 30% stocks with the highest return, Losers form the bottom 30% of stocks with the lowest return. 
+
+```{r setup, include=FALSE}
+#REPLICATING JT STRATEGY 
+
+#Find daily returns for 
+daily_returns_JT <- JT_rank(x)
+
+monthly_returns_JT <- gather_monthly(daily_returns_JT)
+
+#Find mean returns for each month for Winners and for Losers
+#Get rid of all the rows for which we do not have data (=NA). In particular, we have many NAs rows for ret.6.0.m in 
+#the begining because the data was not available for the prior 6 months.
+#Make sure to group by month and ret.class because we are finding the mean return for each class for each month. 
+
+portfolio_returns_JT <- monthly_returns_JT %>%
+                        na.omit() %>%
+                        group_by(month, ret.class) %>%
+                        summarize(mean_return=mean(ret.0.6.m)) %>%
+                        spread(key=ret.class,value=mean_return) %>%
+                        mutate(diff=Winners_JT-Losers_JT) %>%
+                        select(month, Winners_JT, Losers_JT, diff)
+
+#Find monthly average portfolio returns for Winner and Loser portfolios 
+mean(portfolio_returns_JT$Winners_JT)/6
+mean(portfolio_returns_JT$Losers_JT)/6
+mean(portfolio_returns_JT$diff)/6
+```
+
+Second, let's replicate MG strategy 
+In order to build portfolio according to MG strategy we first find the mean industry returns for the 
+
+```{r setup, include=FALSE}
+#REPLICATING MG STRATEGY
+
+daily_returns_MG<-MG_rank(x)
+summary(daily_returns_MG)
+
+monthly_returns_MG<-gather_monthly(daily_returns_MG)
+summary(monthly_returns_MG)
+
+portfolio_returns_MG<-monthly_returns_MG %>%
+                      na.omit() %>%
+                      group_by(month, ind.class) %>%
+                      summarize(mean_return=mean(ret.0.6.m)) %>%
+                      spread(key=ind.class, value=mean_return) %>%
+                      mutate(diff=Winners_MG-Losers_MG) %>%
+                      select(month, Winners_MG, Losers_MG,diff)
+
+```
+
+
+
+```{r setup, include=FALSE}
+#REPLICATING GH STRATEGY 
+
+ratio_daily_GH <- GH_ratio(x)
+
+daily_ranks_GH<-GH_rank(ratio_daily_GH)
+
+monthly_returns_GH<-gather_monthly(daily_ranks_GH)
+
+portfolio_returns_GH <- monthly_returns_GH %>%
+                        na.omit() %>%
+                        group_by(month,wh.52.class) %>%
+                        summarize(mean_return=mean(ret.0.6.m)) %>%
+                        spread(key=wh.52.class,value=mean_return) %>%
+                        mutate(diff=Winners_GH-Losers_GH) %>%
+                        select(month, Winners_GH, Losers_GH, diff)
+
+```
+#Results discussion
