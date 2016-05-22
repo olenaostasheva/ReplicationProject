@@ -74,7 +74,7 @@ mean(portfolio_returns_JT$Losers_JT)/6
 mean(portfolio_returns_JT$diff)/6
 ```
 
-Second, let's replicate MG strategy 
+Second, let's replicate MG strategy. 
 In order to build portfolio according to MG strategy we first find the mean industry returns for the 
 
 ```{r setup, include=FALSE}
@@ -85,6 +85,7 @@ summary(daily_returns_MG)
 
 monthly_returns_MG<-gather_monthly(daily_returns_MG)
 summary(monthly_returns_MG)
+View(monthly_returns_MG)
 
 portfolio_returns_MG<-monthly_returns_MG %>%
                       na.omit() %>%
@@ -94,18 +95,23 @@ portfolio_returns_MG<-monthly_returns_MG %>%
                       mutate(diff=Winners_MG-Losers_MG) %>%
                       select(month, Winners_MG, Losers_MG,diff)
 
+#Find monthly average portfolio returns for Winner and Loser portfolios 
+mean(portfolio_returns_MG$Winners_MG)/6
+mean(portfolio_returns_MG$Losers_MG)/6
+mean(portfolio_returns_MG$diff)/6
+
 ```
 
-
+Finally, in order to replicate the GH strategy, we first find the 52 week high ratio by dividing current price of the stock by its 52 week high price. The maximim ratio we get is 1 (no current price is higher than a 52 week high, otherwise that would be a 52 week high) and the minimum ratio is !!!!! We then rank the stocks according to the ratios, the top 30% of stocks with the highest ratio form a winner portfolio and bottom 30% of stocks with lowest return form a loser portfolio.   
 
 ```{r setup, include=FALSE}
 #REPLICATING GH STRATEGY 
 
 ratio_daily_GH <- GH_ratio(x)
 
-daily_ranks_GH<-GH_rank(ratio_daily_GH)
+daily_ranks_GH <- GH_rank(ratio_daily_GH)
 
-monthly_returns_GH<-gather_monthly(daily_ranks_GH)
+monthly_returns_GH <- gather_monthly(daily_ranks_GH)
 
 portfolio_returns_GH <- monthly_returns_GH %>%
                         na.omit() %>%
@@ -115,5 +121,171 @@ portfolio_returns_GH <- monthly_returns_GH %>%
                         mutate(diff=Winners_GH-Losers_GH) %>%
                         select(month, Winners_GH, Losers_GH, diff)
 
+#Find monthly average portfolio returns for Winner and Loser portfolios 
+mean(portfolio_returns_GH$Winners_GH)/6
+mean(portfolio_returns_GH$Losers_GH)/6
+mean(portfolio_returns_GH$diff)/6
+
 ```
+
 #Results discussion
+
+Chart all the results  
+```{r setup, include=FALSE}
+
+#JT strategy
+#Relationship between past 6 months returns and future 6 months returns of individual stocks 
+monthly_returns_JT %>% ggplot(aes(x=ret.6.0.m, ret.0.6.m))+geom_point()+geom_smooth()+scale_y_continuous(limits = c(-0.5,10))+scale_x_continuous(limits = c(-0.5,11))
+
+#MG returns
+#Relationship between the past industry returns and future industry returns 
+monthly_returns_MG %>% ggplot(aes(x=ind_ret_past,ind_ret_fut))+geom_point()+geom_smooth()+scale_y_continuous(limits = c(-0.5,2.5))+scale_x_continuous(limits = c(-0.5,3))
+
+#GH returns 
+#Relationship between 52 week high ratio and the 6 months future returns 
+monthly_returns_GH %>% ggplot(aes(x=wh_52_ratio, ret.0.6.m))+geom_point()+geom_smooth()+scale_y_continuous(limits = c(-0.5,10))
+```
+
+Only include January returns to explore the "January effect"
+```{r setup, include=FALSE}
+#Include only the month of January in the data 
+#Run through the strtategies again using January data only 
+
+#JT strategy - January only
+daily_returns_JT <- JT_rank(x)
+
+monthly_returns_JT <- gather_monthly(daily_returns_JT)
+monthly_returns_JT <- monthly_returns_JT %>% filter(format.Date(date, "%m")=="01")
+
+portfolio_returns_JT <- monthly_returns_JT %>%
+                        na.omit() %>%
+                        group_by(month, ret.class) %>%
+                        summarize(mean_return=mean(ret.0.6.m)) %>%
+                        spread(key=ret.class,value=mean_return) %>%
+                        mutate(diff=Winners_JT-Losers_JT) %>%
+                        select(month, Winners_JT, Losers_JT, diff)
+
+#Find monthly average portfolio returns for Winner and Loser portfolios 
+mean(portfolio_returns_JT$Winners_JT)/6
+mean(portfolio_returns_JT$Losers_JT)/6
+mean(portfolio_returns_JT$diff)/6
+
+
+#MG strategy - January only
+daily_returns_MG <- MG_rank(x)
+
+monthly_returns_MG <- gather_monthly(daily_returns_MG)
+monthly_returns_MG <- monthly_returns_MG %>% filter(format.Date(date, "%m")=="01")
+
+portfolio_returns_MG<-monthly_returns_MG %>%
+                      na.omit() %>%
+                      group_by(month, ind.class) %>%
+                      summarize(mean_return=mean(ret.0.6.m)) %>%
+                      spread(key=ind.class, value=mean_return) %>%
+                      mutate(diff=Winners_MG-Losers_MG) %>%
+                      select(month, Winners_MG, Losers_MG,diff)
+
+#Find monthly average portfolio returns for Winner and Loser portfolios 
+mean(portfolio_returns_MG$Winners_MG)/6
+mean(portfolio_returns_MG$Losers_MG)/6
+mean(portfolio_returns_MG$diff)/6
+
+
+#GH strategy - January only
+ratio_daily_GH <- GH_ratio(x)
+
+daily_ranks_GH <- GH_rank(ratio_daily_GH)
+
+monthly_returns_GH <- gather_monthly(daily_ranks_GH)
+monthly_returns_GH <- monthly_returns_GH %>% filter(format.Date(date, "%m")=="01")
+        
+portfolio_returns_GH <- monthly_returns_GH %>%
+                        na.omit() %>%
+                        group_by(month,wh.52.class) %>%
+                        summarize(mean_return=mean(ret.0.6.m)) %>%
+                        spread(key=wh.52.class,value=mean_return) %>%
+                        mutate(diff=Winners_GH-Losers_GH) %>%
+                        select(month, Winners_GH, Losers_GH, diff)
+
+#Find monthly average portfolio returns for Winner and Loser portfolios 
+mean(portfolio_returns_GH$Winners_GH)/6
+mean(portfolio_returns_GH$Losers_GH)/6
+mean(portfolio_returns_GH$diff)/6
+
+```
+
+
+Exclude January returns to explore the "January effect"
+```{r setup, include=FALSE}
+
+#JT - exlude data for the month of January 
+
+daily_returns_JT <- JT_rank(x)
+
+monthly_returns_JT <- gather_monthly(daily_returns_JT)
+
+exclude_Jan_JT <- filter(monthly_returns_JT, month!="Jan-1998" & month!="Jan-1999" & month!="Jan-2000" & month!="Jan-2001" & month!="Jan-2002" & month!="Jan-2003"& month!="Jan-2004"& month!="Jan-2005" & month!="Jan-2006" & month!="Jan-2007")
+View(exclude_Jan_JT)
+
+#Find mean returns for each month for Winners and for Losers
+#Get rid of all the rows for which we do not have data (=NA). In particular, we have many NAs rows for ret.6.0.m in 
+#the begining because the data was not available for the prior 6 months.
+#Make sure to group by month and ret.class because we are finding the mean return for each class for each month. 
+
+portfolio_returns_JT <- exclude_Jan_JT %>%
+                        na.omit() %>%
+                        group_by(month, ret.class) %>%
+                        summarize(mean_return=mean(ret.0.6.m)) %>%
+                        spread(key=ret.class,value=mean_return) %>%
+                        mutate(diff=Winners_JT-Losers_JT) %>%
+                        select(month, Winners_JT, Losers_JT, diff)
+
+#Find monthly average portfolio returns for Winner and Loser portfolios 
+mean(portfolio_returns_JT$Winners_JT)/6
+mean(portfolio_returns_JT$Losers_JT)/6
+mean(portfolio_returns_JT$diff)/6
+
+#MG - exlude data for the month of January 
+daily_returns_MG <- MG_rank(x)
+
+monthly_returns_MG <- gather_monthly(daily_returns_MG)
+
+exclude_Jan_MG <- filter(monthly_returns_MG, month!="Jan-1998" & month!="Jan-1999" & month!="Jan-2000" & month!="Jan-2001" & month!="Jan-2002" & month!="Jan-2003"& month!="Jan-2004"& month!="Jan-2005" & month!="Jan-2006" & month!="Jan-2007")
+View(exclude_Jan)
+
+portfolio_returns_MG <- exclude_Jan %>%
+                        na.omit() %>%
+                        group_by(month, ind.class) %>%
+                        summarize(mean_return=mean(ret.0.6.m)) %>%
+                        spread(key=ind.class, value=mean_return) %>%
+                        mutate(diff=Winners_MG-Losers_MG) %>%
+                        select(month, Winners_MG, Losers_MG,diff)
+
+#Find monthly average portfolio returns for Winner and Loser portfolios 
+mean(portfolio_returns_MG$Winners_MG)/6
+mean(portfolio_returns_MG$Losers_MG)/6
+mean(portfolio_returns_MG$diff)/6
+
+
+#GH - exlude data for the month of January
+ratio_daily_GH <- GH_ratio(x)
+
+daily_ranks_GH <- GH_rank(ratio_daily_GH)
+
+monthly_returns_GH <- gather_monthly(daily_ranks_GH)
+
+exclude_Jan_GH <- filter(monthly_returns_GH, month!="Jan-1998" & month!="Jan-1999" & month!="Jan-2000" & month!="Jan-2001" & month!="Jan-2002" & month!="Jan-2003"& month!="Jan-2004"& month!="Jan-2005" & month!="Jan-2006" & month!="Jan-2007")
+View(exclude_Jan)
+
+portfolio_returns_GH <- exclude_Jan_GH %>%
+                        na.omit() %>%
+                        group_by(month,wh.52.class) %>%
+                        summarize(mean_return=mean(ret.0.6.m)) %>%
+                        spread(key=wh.52.class,value=mean_return) %>%
+                        mutate(diff=Winners_GH-Losers_GH) %>%
+                        select(month, Winners_GH, Losers_GH, diff)
+
+#Find monthly average portfolio returns for Winner and Loser portfolios 
+mean(portfolio_returns_GH$Winners_GH)/6
+mean(portfolio_returns_GH$Losers_GH)/6
+mean(portfolio_returns_GH$diff)/6

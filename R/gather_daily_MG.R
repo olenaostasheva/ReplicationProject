@@ -1,4 +1,4 @@
-gather_daily_MG<-<- function(){
+gather_daily_MG <- function(){
 
         x <- gather_data()
 
